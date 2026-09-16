@@ -62,7 +62,8 @@ class MainActivity : ComponentActivity() {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 } else {
                     NavHost(navController, startDestination = if (token!!.isEmpty()) "login" else "dashboard") {
-                        composable("login") { LoginScreen(viewModel) }
+                        composable("login") { LoginScreen(navController, viewModel) }
+                        composable("connection_settings") { ConnectionSettingsScreen(navController, viewModel) }
                         composable("dashboard") { DashboardScreen(navController, viewModel) }
                         composable("add_product") { AddProductScreen(navController, viewModel) }
                         composable("products") { ProductsScreen(navController, viewModel) }
@@ -78,13 +79,27 @@ class MainActivity : ComponentActivity() {
 
 // ============================================================= LOGIN =============================================================
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(viewModel: AdminViewModel) {
+fun LoginScreen(navController: NavHostController, viewModel: AdminViewModel) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val loginState by viewModel.loginState.collectAsState()
 
-    Scaffold { padding ->
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {},
+                actions = {
+                    TextButton(onClick = { navController.navigate("connection_settings") }) {
+                        Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Settings / API URL")
+                    }
+                }
+            )
+        }
+    ) { padding ->
         Column(
             modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp),
             verticalArrangement = Arrangement.Center,
@@ -106,6 +121,97 @@ fun LoginScreen(viewModel: AdminViewModel) {
             if (loginState is UiState.Error) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text((loginState as UiState.Error).message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
+}
+
+// ============================================================ CONNECTION SETTINGS (PRE-LOGIN) ============================================================
+// Unauthenticated screen: only touches the local API Base URL (DataStore) and the
+// public, unauthenticated Test Connection call. Never calls any admin/settings
+// endpoint and never requires a login token.
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ConnectionSettingsScreen(navController: NavHostController, viewModel: AdminViewModel) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val savedUrl by viewModel.apiBaseUrl.collectAsState(initial = "")
+    val testState by viewModel.testConnectionState.collectAsState()
+
+    var url by remember(savedUrl) { mutableStateOf(savedUrl) }
+    var saved by remember { mutableStateOf(false) }
+
+    LaunchedEffect(testState) {
+        when (val t = testState) {
+            is UiState.Success -> { Toast.makeText(context, t.data, Toast.LENGTH_SHORT).show(); viewModel.resetTestConnectionState() }
+            is UiState.Error -> { Toast.makeText(context, t.message, Toast.LENGTH_LONG).show(); viewModel.resetTestConnectionState() }
+            else -> {}
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Connection Settings") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(Modifier.fillMaxSize().padding(padding).padding(24.dp)) {
+            Text(
+                "Set your backend server address before logging in. This is saved on this device only.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(20.dp))
+
+            OutlinedTextField(
+                value = url,
+                onValueChange = { url = it; saved = false },
+                label = { Text("API Base URL") },
+                placeholder = { Text("https://yourdomain.com/backend/") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text(
+                "Example: https://yourdomain.com/backend/  (emulator default: http://10.0.2.2/.../backend/)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+
+            Spacer(Modifier.height(20.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button(
+                    onClick = { scope.launch { viewModel.saveApiBaseUrl(url); saved = true } },
+                    modifier = Modifier.weight(1f)
+                ) { Text("SAVE URL") }
+
+                OutlinedButton(
+                    onClick = { viewModel.testConnection(url) },
+                    enabled = testState !is UiState.Loading,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    if (testState is UiState.Loading) CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                    else Text("TEST CONNECTION")
+                }
+            }
+
+            if (saved) {
+                Spacer(Modifier.height(12.dp))
+                Text("URL saved on this device.", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+            }
+
+            Spacer(Modifier.height(28.dp))
+            OutlinedButton(onClick = { navController.popBackStack() }, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Back to Login")
             }
         }
     }
