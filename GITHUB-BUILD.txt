@@ -1,0 +1,7 @@
+RAMESH SMART SHOP ADMIN - GitHub Build
+1. Upload/push this project to a GitHub repository.
+2. Open Actions.
+3. Run "Build Android APK" (or the workflow shown there).
+4. Download the APK from the workflow Artifacts section.
+
+Do not put production API keys, database passwords, or Cloudinary secrets into GitHub source.

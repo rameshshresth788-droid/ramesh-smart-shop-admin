@@ -1,0 +1,8 @@
+# Many shared-hosting Apache configs strip the Authorization header before
+# PHP ever sees it. This line forwards it explicitly so admin login tokens
+# (Authorization: Bearer ...) reach the API correctly.
+RewriteEngine On
+RewriteCond %{HTTP:Authorization} ^(.*)
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+Options -Indexes

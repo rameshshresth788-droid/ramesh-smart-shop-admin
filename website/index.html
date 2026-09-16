@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Ramesh Smart Shop</title>
+<style>
+  :root { --primary: #0066cc; --bg: #f5f6f8; --card: #ffffff; --text: #222; --muted: #777; --danger: #d32f2f; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); }
+  .container { max-width: 720px; margin: 0 auto; padding: 14px; }
+  .hidden { display: none !important; }
+
+  /* ---- Header ---- */
+  header { background: var(--card); padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+  header h1 { margin: 0; font-size: 18px; color: var(--primary); }
+  .cart-btn { background: var(--primary); color: #fff; border: none; padding: 10px 16px; border-radius: 24px; font-weight: 600; font-size: 14px; }
+
+  /* ---- Entry screen ---- */
+  .entry-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .entry-card { background: var(--card); border-radius: 16px; padding: 28px 24px; max-width: 380px; width: 100%; box-shadow: 0 6px 20px rgba(0,0,0,0.08); text-align: center; }
+  .entry-card h2 { margin: 4px 0 4px; color: var(--primary); }
+  .entry-card p.sub { color: var(--muted); margin-top: 0; margin-bottom: 20px; font-size: 14px; }
+  input[type=text], select { width: 100%; padding: 13px 14px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; background: #fff; }
+  .gender-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+  .gender-btn { padding: 12px 8px; border-radius: 10px; border: 1.5px solid #ddd; background: #fff; font-size: 14px; cursor: pointer; }
+  .gender-btn.selected { border-color: var(--primary); background: #eaf2fd; color: var(--primary); font-weight: 600; }
+  .btn-primary { width: 100%; padding: 14px; border: none; border-radius: 10px; background: var(--primary); color: #fff; font-weight: 700; font-size: 15px; margin-top: 10px; cursor: pointer; }
+  .btn-primary:disabled { opacity: 0.6; }
+  .error-text { color: var(--danger); font-size: 13px; margin-top: 8px; min-height: 16px; }
+
+  /* ---- Filters ---- */
+  .filters { display: flex; gap: 8px; margin-bottom: 12px; }
+  .filters input, .filters select { margin: 0; }
+
+  /* ---- Products ---- */
+  .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+  .product-card { background: var(--card); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; flex-direction: column; }
+  .product-image { width: 100%; height: 130px; object-fit: cover; background: #eee; }
+  .product-info { padding: 10px; flex-grow: 1; display: flex; flex-direction: column; }
+  .product-name { font-weight: 700; margin: 0 0 2px; font-size: 14px; }
+  .product-category { color: var(--muted); font-size: 11px; margin: 0 0 8px; }
+  .price-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 10px; }
+  .current-price { font-weight: 700; color: #c2185b; font-size: 15px; }
+  .old-price { text-decoration: line-through; color: #999; font-size: 12px; }
+  .add-to-cart { background: var(--primary); color: #fff; border: none; padding: 9px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; margin-top: auto; }
+  .empty-state { text-align: center; color: var(--muted); padding: 40px 16px; }
+
+  /* ---- Cart drawer ---- */
+  .cart-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; align-items: flex-end; justify-content: center; }
+  .cart-modal.open { display: flex; }
+  .cart-content { background: #fff; width: 100%; max-width: 720px; max-height: 85vh; overflow-y: auto; border-radius: 20px 20px 0 0; padding: 20px; position: relative; }
+  .close-modal { background: none; border: none; font-size: 26px; position: absolute; right: 16px; top: 12px; cursor: pointer; color: var(--muted); }
+  .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; gap: 10px; }
+  .cart-item-name { font-weight: 600; font-size: 14px; }
+  .cart-item-sub { color: var(--muted); font-size: 12px; }
+  .qty-controls { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .qty-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid #ddd; background: #fafafa; cursor: pointer; font-weight: 700; font-size: 16px; }
+  .cart-total-row { display: flex; justify-content: space-between; font-weight: 700; font-size: 18px; margin: 18px 0 10px; }
+
+  /* ---- Toast ---- */
+  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #222; color: #fff; padding: 12px 20px; border-radius: 24px; font-size: 14px; z-index: 300; opacity: 0; transition: opacity 0.25s; pointer-events: none; max-width: 90%; text-align: center; }
+  #toast.show { opacity: 1; }
+
+  /* ---- Success screen ---- */
+  .success-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+  .success-card { background: #fff; border-radius: 16px; padding: 32px 24px; max-width: 380px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); }
+  .success-icon { font-size: 48px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- Entry screen -->
+<div id="entry-screen" class="entry-wrap">
+  <div class="entry-card">
+    <h2 id="entry-shop-name">Ramesh Smart Shop</h2>
+    <p class="sub">Please enter your details to start shopping</p>
+    <input type="text" id="user-name" placeholder="Your Name" maxlength="100">
+    <div class="gender-grid" id="gender-grid">
+      <button type="button" class="gender-btn" data-gender="Male">Male</button>
+      <button type="button" class="gender-btn" data-gender="Female">Female</button>
+      <button type="button" class="gender-btn" data-gender="Other">Other</button>
+      <button type="button" class="gender-btn" data-gender="Prefer not to say">Prefer not to say</button>
+    </div>
+    <button class="btn-primary" id="continue-btn">CONTINUE SHOPPING</button>
+    <div class="error-text" id="entry-error"></div>
+  </div>
+</div>
+
+<!-- Shop screen -->
+<div id="shop-screen" class="hidden">
+  <header>
+    <h1 id="shop-header-name">Ramesh Smart Shop</h1>
+    <button class="cart-btn" id="open-cart-btn">Cart (<span id="cart-count">0</span>)</button>
+  </header>
+  <div class="container">
+    <div class="filters">
+      <input type="text" id="search-bar" placeholder="Search products...">
+      <select id="category-filter">
+        <option value="">All Categories</option>
+      </select>
+    </div>
+    <div id="products-grid" class="products-grid"></div>
+    <div id="products-empty" class="empty-state hidden">No products found.</div>
+  </div>
+</div>
+
+<!-- Cart modal -->
+<div class="cart-modal" id="cart-modal">
+  <div class="cart-content">
+    <button class="close-modal" id="close-cart-btn">&times;</button>
+    <h2>Your Cart</h2>
+    <div id="cart-items"></div>
+    <div class="cart-total-row">
+      <span>Total</span>
+      <span id="cart-total-price">₹0</span>
+    </div>
+    <button class="btn-primary" id="send-to-admin-btn">SEND TO ADMIN</button>
+    <div class="error-text" id="cart-error"></div>
+  </div>
+</div>
+
+<!-- Success screen -->
+<div id="success-screen" class="success-wrap hidden">
+  <div class="success-card">
+    <div class="success-icon">✅</div>
+    <h2>Request Sent!</h2>
+    <p id="success-detail" style="color:var(--muted)"></p>
+    <p style="color:var(--muted); font-size: 13px;">Please go to the counter to collect your items and pay.</p>
+    <button class="btn-primary" id="back-to-shop-btn">CONTINUE SHOPPING</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ================= CONFIGURATION =================
+  // Points at the backend folder. Edit this one line if the website is
+  // hosted on a different domain from the backend (see README).
+  const API_BASE = "../backend/api/";
+
+  const STORAGE_KEY = "rss_session_v1";
+
+  let products = [];
+  let categories = [];
+  let cart = [];               // [{product_id, product_name, image_url, price, quantity}]
+  let session = null;          // {session_id, name, gender}
+  let selectedGender = "";
+  let sending = false;
+  let currentIdempotencyKey = null;
+
+  // ================= HELPERS =================
+  function $(id) { return document.getElementById(id); }
+
+  function showToast(msg) {
+    const el = $("toast");
+    el.textContent = msg;
+    el.classList.add("show");
+    setTimeout(() => el.classList.remove("show"), 2500);
+  }
+
+  function money(n) {
+    return "\u20B9" + Number(n).toFixed(2).replace(/\.00$/, "");
+  }
+
+  async function apiFetch(path, options) {
+    const res = await fetch(API_BASE + path, options);
+    let body;
+    try { body = await res.json(); } catch (e) {
+      throw new Error("Server returned an unexpected response.");
+    }
+    return body;
+  }
+
+  function newIdempotencyKey() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return "req_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+  }
+
+  // ================= SESSION / ENTRY =================
+  function loadSession() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) session = JSON.parse(raw);
+    } catch (e) { session = null; }
+  }
+
+  function saveSession() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  }
+
+  async function loadShopName() {
+    try {
+      const res = await apiFetch("settings/public.php");
+      if (res.success && res.data && res.data.shop_name) {
+        $("entry-shop-name").textContent = res.data.shop_name;
+        $("shop-header-name").textContent = res.data.shop_name;
+        document.title = res.data.shop_name;
+      }
+    } catch (e) { /* keep default name */ }
+  }
+
+  $("gender-grid").addEventListener("click", function (e) {
+    const btn = e.target.closest(".gender-btn");
+    if (!btn) return;
+    document.querySelectorAll(".gender-btn").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    selectedGender = btn.dataset.gender;
+  });
+
+  $("continue-btn").addEventListener("click", async function () {
+    const name = $("user-name").value.trim();
+    $("entry-error").textContent = "";
+    if (!name) {
+      $("entry-error").textContent = "Please enter your name.";
+      return;
+    }
+    $("continue-btn").disabled = true;
+    try {
+      const res = await apiFetch("session/index.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name, gender: selectedGender })
+      });
+      if (res.success) {
+        session = { session_id: res.data.session_id, name: res.data.name, gender: res.data.gender };
+        saveSession();
+        showShop();
+      } else {
+        $("entry-error").textContent = res.message || "Could not start shopping. Please try again.";
+      }
+    } catch (e) {
+      $("entry-error").textContent = "Could not reach the shop. Please check your connection.";
+    } finally {
+      $("continue-btn").disabled = false;
+    }
+  });
+
+  function showShop() {
+    $("entry-screen").classList.add("hidden");
+    $("success-screen").classList.add("hidden");
+    $("shop-screen").classList.remove("hidden");
+    loadProducts();
+  }
+
+  // ================= PRODUCTS =================
+  async function loadProducts() {
+    $("products-grid").innerHTML = "";
+    try {
+      const res = await apiFetch("products/index.php");
+      if (res.success) {
+        products = res.data || [];
+        categories = [...new Set(products.map(p => p.category).filter(Boolean))];
+        renderCategoryOptions();
+        renderProducts();
+      } else {
+        showToast(res.message || "Could not load products.");
+      }
+    } catch (e) {
+      $("products-grid").innerHTML = "";
+      $("products-empty").textContent = "Could not load products. Please check your connection and reload.";
+      $("products-empty").classList.remove("hidden");
+    }
+  }
+
+  function renderCategoryOptions() {
+    const select = $("category-filter");
+    const current = select.value;
+    select.innerHTML = '<option value="">All Categories</option>' +
+      categories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+    select.value = current;
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, s => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[s]));
+  }
+
+  function renderProducts() {
+    const search = $("search-bar").value.trim().toLowerCase();
+    const category = $("category-filter").value;
+
+    const filtered = products.filter(p => {
+      const matchesSearch = !search ||
+        p.product_name.toLowerCase().includes(search) ||
+        (p.category || "").toLowerCase().includes(search) ||
+        (p.product_type || "").toLowerCase().includes(search);
+      const matchesCategory = !category || p.category === category;
+      return matchesSearch && matchesCategory;
+    });
+
+    const grid = $("products-grid");
+    if (filtered.length === 0) {
+      grid.innerHTML = "";
+      $("products-empty").textContent = "No products found.";
+      $("products-empty").classList.remove("hidden");
+      return;
+    }
+    $("products-empty").classList.add("hidden");
+
+    grid.innerHTML = filtered.map(p => `
+      <div class="product-card">
+        <img class="product-image" src="${p.image_url ? escapeHtml(p.image_url) : ''}"
+             onerror="this.style.background='#eee'; this.src='';" alt="${escapeHtml(p.product_name)}">
+        <div class="product-info">
+          <p class="product-name">${escapeHtml(p.product_name)}</p>
+          <p class="product-category">${escapeHtml(p.category)}</p>
+          <div class="price-row">
+            <span class="current-price">${money(p.current_price)}</span>
+            ${p.old_price && Number(p.old_price) > Number(p.current_price) ? `<span class="old-price">${money(p.old_price)}</span>` : ""}
+          </div>
+          <button class="add-to-cart" data-id="${p.id}">ADD TO CART</button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  $("search-bar").addEventListener("input", renderProducts);
+  $("category-filter").addEventListener("change", renderProducts);
+
+  $("products-grid").addEventListener("click", function (e) {
+    const btn = e.target.closest(".add-to-cart");
+    if (!btn) return;
+    addToCart(parseInt(btn.dataset.id, 10));
+  });
+
+  // ================= CART =================
+  function addToCart(productId) {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    const existing = cart.find(i => i.product_id === productId);
+    if (existing) {
+      existing.quantity += 1;
+    } else {
+      cart.push({
+        product_id: product.id,
+        product_name: product.product_name,
+        image_url: product.image_url,
+        price: product.current_price,
+        quantity: 1
+      });
+    }
+    updateCartCount();
+    showToast(product.product_name + " added to cart");
+  }
+
+  function updateCartCount() {
+    const count = cart.reduce((sum, i) => sum + i.quantity, 0);
+    $("cart-count").textContent = count;
+  }
+
+  function changeQuantity(productId, delta) {
+    const item = cart.find(i => i.product_id === productId);
+    if (!item) return;
+    item.quantity += delta;
+    if (item.quantity <= 0) {
+      cart = cart.filter(i => i.product_id !== productId);
+    }
+    renderCartItems();
+    updateCartCount();
+  }
+
+  function renderCartItems() {
+    const container = $("cart-items");
+    if (cart.length === 0) {
+      container.innerHTML = '<p style="color:var(--muted); text-align:center; padding: 20px 0;">Your cart is empty.</p>';
+    } else {
+      container.innerHTML = cart.map(item => `
+        <div class="cart-item">
+          <div>
+            <div class="cart-item-name">${escapeHtml(item.product_name)}</div>
+            <div class="cart-item-sub">${money(item.price)} x ${item.quantity} = ${money(item.price * item.quantity)}</div>
+          </div>
+          <div class="qty-controls">
+            <button class="qty-btn" data-action="dec" data-id="${item.product_id}">-</button>
+            <span>${item.quantity}</span>
+            <button class="qty-btn" data-action="inc" data-id="${item.product_id}">+</button>
+          </div>
+        </div>
+      `).join("");
+    }
+    const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    $("cart-total-price").textContent = money(total);
+  }
+
+  $("cart-items").addEventListener("click", function (e) {
+    const btn = e.target.closest(".qty-btn");
+    if (!btn) return;
+    const id = parseInt(btn.dataset.id, 10);
+    changeQuantity(id, btn.dataset.action === "inc" ? 1 : -1);
+  });
+
+  $("open-cart-btn").addEventListener("click", function () {
+    renderCartItems();
+    $("cart-error").textContent = "";
+    $("cart-modal").classList.add("open");
+  });
+  $("close-cart-btn").addEventListener("click", function () {
+    $("cart-modal").classList.remove("open");
+  });
+
+  // ================= SEND TO ADMIN =================
+  $("send-to-admin-btn").addEventListener("click", async function () {
+    if (sending) return; // guard against double-tap
+    $("cart-error").textContent = "";
+
+    if (cart.length === 0) {
+      $("cart-error").textContent = "Your cart is empty.";
+      return;
+    }
+    if (!session) {
+      $("cart-error").textContent = "Your session expired. Please reload the page.";
+      return;
+    }
+
+    if (!currentIdempotencyKey) currentIdempotencyKey = newIdempotencyKey();
+
+    sending = true;
+    const btn = $("send-to-admin-btn");
+    btn.disabled = true;
+    btn.textContent = "SENDING\u2026";
+
+    try {
+      const res = await apiFetch("requests/index.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": currentIdempotencyKey
+        },
+        body: JSON.stringify({
+          customer_name: session.name,
+          gender: session.gender,
+          session_id: session.session_id,
+          idempotency_key: currentIdempotencyKey,
+          items: cart.map(i => ({ product_id: i.product_id, quantity: i.quantity }))
+        })
+      });
+
+      if (res.success) {
+        $("success-detail").textContent = "Request #" + res.data.request_id + " \u2014 Total " + money(res.data.total);
+        cart = [];
+        currentIdempotencyKey = null;
+        updateCartCount();
+        $("cart-modal").classList.remove("open");
+        $("shop-screen").classList.add("hidden");
+        $("success-screen").classList.remove("hidden");
+      } else {
+        // Item unavailable / validation errors: let the shopper retry with a fresh key.
+        currentIdempotencyKey = null;
+        $("cart-error").textContent = res.message || "Could not send your request. Please try again.";
+      }
+    } catch (e) {
+      // Network failure: keep the same idempotency key so a retry can't create a duplicate.
+      $("cart-error").textContent = "Network error. Please check your connection and try again.";
+    } finally {
+      sending = false;
+      btn.disabled = false;
+      btn.textContent = "SEND TO ADMIN";
+    }
+  });
+
+  $("back-to-shop-btn").addEventListener("click", function () {
+    $("success-screen").classList.add("hidden");
+    $("shop-screen").classList.remove("hidden");
+    loadProducts();
+  });
+
+  // ================= INIT =================
+  loadSession();
+  loadShopName();
+  if (session && session.session_id) {
+    showShop();
+  }
+})();
+</script>
+</body>
+</html>

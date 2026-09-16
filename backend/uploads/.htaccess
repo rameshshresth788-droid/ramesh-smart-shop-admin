@@ -1,0 +1,9 @@
+# Prevent any uploaded file from being executed as a script.
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|pl|py|cgi|asp|aspx|exe|sh)$">
+    Require all denied
+</FilesMatch>
+Options -ExecCGI
+AddHandler cgi-script .php .phtml .php3 .php4 .php5 .php7 .pl .py .cgi
