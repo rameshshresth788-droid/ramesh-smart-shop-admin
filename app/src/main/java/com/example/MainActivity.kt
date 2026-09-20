@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -558,7 +559,16 @@ fun RequestsScreen(navController: NavHostController, viewModel: AdminViewModel) 
                                 Column(Modifier.padding(16.dp)) {
                                     Text("${request.customer_name}${request.gender?.let { " ($it)" } ?: ""}", style = MaterialTheme.typography.titleMedium)
                                     Spacer(Modifier.height(4.dp))
-                                    request.items.forEach { item -> Text("${item.product_name} x${item.quantity} = \u20B9${item.subtotal}") }
+                                    request.items.forEach { item ->
+                                        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            AsyncImage(model = item.image_url, contentDescription = item.product_name, modifier = Modifier.size(64.dp).clip(RoundedCornerShape(10.dp)))
+                                            Spacer(Modifier.width(12.dp))
+                                            Column(Modifier.weight(1f)) {
+                                                Text(item.product_name, fontWeight = FontWeight.Medium)
+                                                Text("Qty: ${item.quantity}  •  ₹${item.subtotal}", style = MaterialTheme.typography.bodyMedium)
+                                            }
+                                        }
+                                    }
                                     Spacer(Modifier.height(4.dp))
                                     Text("Total: \u20B9${request.total_amount}", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                                     Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.End) {

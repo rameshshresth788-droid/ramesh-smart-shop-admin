@@ -16,7 +16,7 @@ if ($id) {
     $request = $stmt->fetch();
     if (!$request) sendJson(false, "Request not found", null, 404);
 
-    $stmt = $conn->prepare("SELECT * FROM purchase_request_items WHERE request_id = ?");
+    $stmt = $conn->prepare("SELECT pri.*, p.image_url AS image_url FROM purchase_request_items pri LEFT JOIN products p ON p.id = pri.product_id WHERE pri.request_id = ?");
     $stmt->execute([$id]);
     $request['items'] = $stmt->fetchAll();
     sendJson(true, "Request loaded", $request);
@@ -31,7 +31,7 @@ $stmt = $conn->prepare("SELECT * FROM purchase_requests WHERE status = ? ORDER B
 $stmt->execute([$status]);
 $requests = $stmt->fetchAll();
 
-$itemStmt = $conn->prepare("SELECT * FROM purchase_request_items WHERE request_id = ?");
+$itemStmt = $conn->prepare("SELECT pri.*, p.image_url AS image_url FROM purchase_request_items pri LEFT JOIN products p ON p.id = pri.product_id WHERE pri.request_id = ?");
 foreach ($requests as &$req) {
     $itemStmt->execute([$req['id']]);
     $req['items'] = $itemStmt->fetchAll();
