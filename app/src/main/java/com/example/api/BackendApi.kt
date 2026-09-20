@@ -41,10 +41,10 @@ interface BackendApi {
     suspend fun getProduct(@Query("id") id: Int): ApiResponse<Product>
 
     @POST("api/products/index.php")
-    suspend fun addProduct(@Body product: Map<String, Any?>): ApiResponse<Map<String, Int>>
+    suspend fun addProduct(@Body product: Map<String, @JvmSuppressWildcards Any?>): ApiResponse<Map<String, Int>>
 
     @PUT("api/products/index.php")
-    suspend fun updateProduct(@Query("id") id: Int, @Body product: Map<String, Any?>): ApiResponse<Any>
+    suspend fun updateProduct(@Query("id") id: Int, @Body product: Map<String, @JvmSuppressWildcards Any?>): ApiResponse<Any>
 
     @DELETE("api/products/index.php")
     suspend fun deleteProduct(@Query("id") id: Int): ApiResponse<Any>
