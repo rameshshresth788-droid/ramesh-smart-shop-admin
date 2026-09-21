@@ -52,6 +52,8 @@ class MainActivity : ComponentActivity() {
             MyApplicationTheme {
                 val navController = rememberNavController()
                 val token by viewModel.adminToken.collectAsState(initial = null)
+                val adminRole by viewModel.adminRole.collectAsState(initial = "")
+
 
                 LaunchedEffect(token) {
                     if (token != null) {
@@ -72,6 +74,8 @@ class MainActivity : ComponentActivity() {
                         composable("requests") { RequestsScreen(navController, viewModel) }
                         composable("purchases") { PurchasesScreen(navController, viewModel) }
                         composable("settings") { SettingsScreen(navController, viewModel) }
+                        composable("staff") { StaffManagementScreen(navController, viewModel) }
+
                     }
                 }
             }
@@ -233,7 +237,7 @@ fun DashboardScreen(navController: NavHostController, viewModel: AdminViewModel)
                 IconButton(onClick = { viewModel.logout() }) { Icon(Icons.AutoMirrored.Filled.ExitToApp, "Logout") }
             })
         },
-        bottomBar = { BottomNav(navController) }
+        bottomBar = { BottomNav(navController, viewModel) }
     ) { padding ->
         when (val s = state) {
             is UiState.Loading, UiState.Idle -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -355,7 +359,7 @@ fun AddProductScreen(navController: NavHostController, viewModel: AdminViewModel
 
     Scaffold(
         topBar = { TopAppBar(title = { Text(if (draft.id == 0) "Add Product" else "Edit Product") }) },
-        bottomBar = { BottomNav(navController) }
+        bottomBar = { BottomNav(navController, viewModel) }
     ) { padding ->
         Column(Modifier.padding(padding).padding(16.dp).verticalScroll(rememberScrollState())) {
 
@@ -483,7 +487,7 @@ fun ProductsScreen(navController: NavHostController, viewModel: AdminViewModel) 
                 IconButton(onClick = { viewModel.startNewProduct(); navController.navigate("add_product") }) { Icon(Icons.Default.Add, "Add") }
             })
         },
-        bottomBar = { BottomNav(navController) }
+        bottomBar = { BottomNav(navController, viewModel) }
     ) { padding ->
         when (val s = state) {
             is UiState.Loading, UiState.Idle -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -545,7 +549,7 @@ fun RequestsScreen(navController: NavHostController, viewModel: AdminViewModel) 
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("User Requests") }) },
-        bottomBar = { BottomNav(navController) }
+        bottomBar = { BottomNav(navController, viewModel) }
     ) { padding ->
         when (val s = state) {
             is UiState.Loading, UiState.Idle -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -607,7 +611,7 @@ fun PurchasesScreen(navController: NavHostController, viewModel: AdminViewModel)
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Purchase History (24h)") }) },
-        bottomBar = { BottomNav(navController) }
+        bottomBar = { BottomNav(navController, viewModel) }
     ) { padding ->
         when (val s = state) {
             is UiState.Loading, UiState.Idle -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -690,7 +694,7 @@ fun SettingsScreen(navController: NavHostController, viewModel: AdminViewModel) 
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Settings") }) },
-        bottomBar = { BottomNav(navController) }
+        bottomBar = { BottomNav(navController, viewModel) }
     ) { padding ->
         Column(Modifier.padding(padding).padding(16.dp).verticalScroll(rememberScrollState())) {
 
@@ -792,7 +796,8 @@ fun SettingsSectionTitle(text: String) {
 // ============================================================ NAV ============================================================
 
 @Composable
-fun BottomNav(navController: NavHostController) {
+fun BottomNav(navController: NavHostController, viewModel: AdminViewModel) {
+    val adminRole by viewModel.adminRole.collectAsState(initial = "")
     fun go(route: String) {
         navController.navigate(route) {
             popUpTo("dashboard") { saveState = true }
@@ -806,6 +811,136 @@ fun BottomNav(navController: NavHostController) {
         NavigationBarItem(selected = currentRoute == "products", onClick = { go("products") }, icon = { Icon(Icons.Default.List, "Products") }, label = { Text("Products") })
         NavigationBarItem(selected = currentRoute == "requests", onClick = { go("requests") }, icon = { Icon(Icons.Default.Notifications, "Requests") }, label = { Text("Requests") })
         NavigationBarItem(selected = currentRoute == "purchases", onClick = { go("purchases") }, icon = { Icon(Icons.Default.History, "History") }, label = { Text("History") })
-        NavigationBarItem(selected = currentRoute == "settings", onClick = { go("settings") }, icon = { Icon(Icons.Default.Settings, "Settings") }, label = { Text("Settings") })
+        if (adminRole == "HEAD_ADMIN") { NavigationBarItem(selected = currentRoute == "staff", onClick = { go("staff") }, icon = { Icon(Icons.Default.People, "Staff") }, label = { Text("Staff") }) }
+        if (adminRole == "HEAD_ADMIN") { NavigationBarItem(selected = currentRoute == "settings", onClick = { go("settings") }, icon = { Icon(Icons.Default.Settings, "Settings") }, label = { Text("Settings") }) }
+    }
+}
+
+@Composable
+fun StaffManagementScreen(
+    navController: NavHostController,
+    viewModel: AdminViewModel
+) {
+    val staffState by viewModel.staffState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadStaff()
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Staff Management") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        when (val state = staffState) {
+            is UiState.Loading -> {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+
+            is UiState.Error -> {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(state.message)
+                }
+            }
+
+            is UiState.Success -> {
+                if (state.data.isEmpty()) {
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("No staff accounts found")
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding)
+                            .padding(horizontal = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(vertical = 12.dp)
+                    ) {
+                        items(state.data) { staff ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    AsyncImage(
+                                        model = staff.photo_url,
+                                        contentDescription = "Staff photo",
+                                        modifier = Modifier
+                                            .size(60.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                    )
+
+                                    Spacer(Modifier.width(12.dp))
+
+                                    Column(
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text(
+                                            staff.name,
+                                            fontWeight = FontWeight.Bold
+                                        )
+
+                                        Text(
+                                            staff.username ?: staff.phone,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+
+                                        Text(
+                                            "${staff.gender ?: "N/A"} • Age: ${staff.age ?: "N/A"}",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+
+                                        Text(
+                                            "Status: ${staff.approval_status}",
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            is UiState.Idle -> {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+        }
     }
 }

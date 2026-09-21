@@ -45,6 +45,8 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
 
     val apiBaseUrl = settingsManager.apiBaseUrl
     val adminToken = settingsManager.adminToken
+    val adminRole = settingsManager.adminRole
+
 
     private val _loginState = MutableStateFlow<UiState<Boolean>>(UiState.Idle)
     val loginState: StateFlow<UiState<Boolean>> = _loginState
@@ -66,6 +68,9 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _saveProductState = MutableStateFlow<UiState<Boolean>>(UiState.Idle)
     val saveProductState: StateFlow<UiState<Boolean>> = _saveProductState
+
+    private val _staffState = MutableStateFlow<UiState<List<StaffAdmin>>>(UiState.Idle)
+    val staffState: StateFlow<UiState<List<StaffAdmin>>> = _staffState
 
     private val _settingsState = MutableStateFlow<UiState<Map<String, Any>>>(UiState.Idle)
     val settingsState: StateFlow<UiState<Map<String, Any>>> = _settingsState
@@ -99,6 +104,11 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
                 val res = api.login(mapOf("username" to username, "password" to pass))
                 if (res.success && res.data != null) {
                     settingsManager.saveAdminToken(res.data.token)
+                    settingsManager.saveAdminSession(
+                        res.data.admin_id ?: 0,
+                        res.data.role,
+                        res.data.approval_status
+                    )
                     _loginState.value = UiState.Success(true)
                 } else {
                     _loginState.value = UiState.Error(res.message)
@@ -121,6 +131,7 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
             _dashboardState.value = UiState.Idle
             _productsState.value = UiState.Idle
             _requestsState.value = UiState.Idle
+            _staffState.value = UiState.Idle
             _purchasesState.value = UiState.Idle
         }
     }
@@ -366,6 +377,21 @@ class AdminViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
+
+    // ================= STAFF MANAGEMENT =================
+    fun loadStaff() {
+        viewModelScope.launch {
+            _staffState.value = UiState.Loading
+            try {
+                val res = getApi().getStaff()
+                if (res.success && res.data != null) _staffState.value = UiState.Success(res.data)
+                else _staffState.value = UiState.Error(res.message)
+            } catch (e: Exception) {
+                _staffState.value = UiState.Error(friendlyError(e))
+            }
+        }
+    }
+
 
     // ================= SETTINGS =================
     fun loadSettings() {

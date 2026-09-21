@@ -88,6 +88,25 @@ function verifyAdmin($conn) {
     return $admin['id'];
 }
 
+
+function getAdminById($conn, $adminId) {
+    $stmt = $conn->prepare("SELECT id, name, phone, username, email, role, approval_status, photo_url, age, gender FROM admins WHERE id = ? LIMIT 1");
+    $stmt->execute([$adminId]);
+    return $stmt->fetch();
+}
+
+function requireHeadAdmin($conn) {
+    $adminId = verifyAdmin($conn);
+    $admin = getAdminById($conn, $adminId);
+    if (!$admin || $admin["role"] !== "HEAD_ADMIN") {
+        sendJson(false, "Head Admin permission required", null, 403);
+    }
+    if ($admin["approval_status"] !== "APPROVED") {
+        sendJson(false, "Admin account is not approved", null, 403);
+    }
+    return $admin;
+}
+
 // ---------------- Settings helpers ----------------
 // Keys never returned to any client (admin app included) once set - write-only.
 function secretSettingKeys() {

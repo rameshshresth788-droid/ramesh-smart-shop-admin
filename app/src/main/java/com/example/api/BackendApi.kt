@@ -78,6 +78,10 @@ interface BackendApi {
     @DELETE("api/purchases/index.php")
     suspend fun deletePurchase(@Query("id") id: Int): ApiResponse<Any>
 
+    // ---- Staff management (Head Admin only) ----
+    @GET("api/admin/staff/index.php")
+    suspend fun getStaff(): ApiResponse<List<StaffAdmin>>
+
     // ---- Settings ----
     @GET("api/settings/index.php")
     suspend fun getSettings(): ApiResponse<Map<String, Any>>

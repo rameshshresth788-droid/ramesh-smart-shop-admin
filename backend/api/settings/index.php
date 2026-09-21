@@ -1,6 +1,6 @@
 <?php
 require_once '../../config/database.php';
-verifyAdmin($conn);
+requireHeadAdmin($conn);
 
 $method = $_SERVER['REQUEST_METHOD'];
 

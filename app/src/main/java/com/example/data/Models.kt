@@ -84,7 +84,10 @@ data class UploadResult(
 @JsonClass(generateAdapter = true)
 data class LoginResult(
     val token: String,
-    val expires_at: String?
+    val expires_at: String?,
+    val admin_id: Int? = null,
+    val role: String = "HEAD_ADMIN",
+    val approval_status: String = "APPROVED"
 )
 
 @JsonClass(generateAdapter = true)
@@ -92,5 +95,26 @@ data class AdminProfile(
     val id: Int,
     val username: String,
     val email: String,
+    val role: String = "HEAD_ADMIN",
+    val approval_status: String = "APPROVED",
+    val photo_url: String? = null,
+    val age: Int? = null,
+    val gender: String? = null,
     val created_at: String
+)
+
+@JsonClass(generateAdapter = true)
+data class StaffAdmin(
+    val id: Int,
+    val name: String,
+    val phone: String,
+    val username: String? = null,
+    val email: String? = null,
+    val role: String = "STAFF",
+    val approval_status: String = "PENDING",
+    val photo_url: String? = null,
+    val age: Int? = null,
+    val gender: String? = null,
+    val created_at: String? = null,
+    val updated_at: String? = null
 )

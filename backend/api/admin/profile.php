@@ -6,7 +6,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 }
 
 $adminId = verifyAdmin($conn);
-$stmt = $conn->prepare("SELECT id, username, email, created_at FROM admins WHERE id = ?");
+$stmt = $conn->prepare("SELECT id, username, email, role, approval_status, photo_url, age, gender, created_at FROM admins WHERE id = ?");
 $stmt->execute([$adminId]);
 $admin = $stmt->fetch();
 sendJson(true, "Profile loaded", $admin);
