@@ -9,6 +9,7 @@ import com.example.data.Purchase
 import com.example.data.PurchaseRequest
 import com.example.data.UploadResult
 import com.example.data.LoginResult
+import com.example.data.StaffAdmin
 import okhttp3.MultipartBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE

@@ -817,6 +817,7 @@ fun BottomNav(navController: NavHostController, viewModel: AdminViewModel) {
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun StaffManagementScreen(
     navController: NavHostController,
     viewModel: AdminViewModel
