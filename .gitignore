@@ -1,0 +1,31 @@
+*.iml
+.gradle
+.kotlin
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+.env
+# NOTE: debug.keystore is intentionally NOT ignored - it must be committed
+# for GitHub Actions (and any other machine) to build a debug APK. It holds
+# only the standard, publicly-known Android debug credentials (password
+# "android"), never used for a real release, so this is safe.
+
+# Backend secrets - never commit real credentials
+backend/config/config.php
+backend/uploads/*
+!backend/uploads/.gitkeep
+!backend/uploads/.htaccess
+
+# Local backup files - never commit
+*.backup
+*.backup-*

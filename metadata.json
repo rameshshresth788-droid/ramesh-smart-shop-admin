@@ -1,0 +1,6 @@
+{
+  "name": "Ramesh Smart Shop Admin",
+  "description": "Admin application for Ramesh Smart Shop with backend API and AI product analysis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
