@@ -1,0 +1,122 @@
+name: Build RAMESH AI APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      # `yes | sdkmanager --licenses` is interactive under the hood and is not
+      # reliable in CI: sdkmanager's prompt handling varies by version, and a
+      # silently-swallowed failure here (the old `|| true`) just moves the
+      # same "licenses not accepted" error later, into the Gradle/AGP step,
+      # which auto-invokes sdkmanager to fetch missing SDK components.
+      #
+      # Instead, write the license-acceptance hash files directly into
+      # $ANDROID_SDK_ROOT/licenses. This is what accepting each license
+      # interactively actually does on disk, so it's fully deterministic and
+      # non-interactive, and doesn't depend on a TTY or prompt format at all.
+      - name: Accept Android SDK licenses (non-interactive)
+        run: |
+          set -e
+          mkdir -p "$ANDROID_SDK_ROOT/licenses"
+          {
+            echo "8933bad161af4178b1185d1a37fbf41ea5269c55"
+            echo "d56f5187479451eabf01fb78af6dfcb131a6481e"
+            echo "24333f8a63b6825ea9c5514f83c2829b004d1fee"
+          } > "$ANDROID_SDK_ROOT/licenses/android-sdk-license"
+          echo "84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_SDK_ROOT/licenses/android-sdk-preview-license"
+          echo "859f317696f67ef3d7f30a50a5560e7834b43903" > "$ANDROID_SDK_ROOT/licenses/android-sdk-arm-dbt-license"
+          echo "33b6a2b64607f11b759f320ef9dff4ae5c47d97a" > "$ANDROID_SDK_ROOT/licenses/google-gdk-license"
+          echo "d975f751698a77b662f1254ddbeed3901e976f5" > "$ANDROID_SDK_ROOT/licenses/intel-android-extra-license"
+          echo "601085b94cd77f0b54ff86406957099ebe79c4d6" > "$ANDROID_SDK_ROOT/licenses/android-googletv-license"
+          echo "e9acab5b5fbb560a72cfaecce8946896ff6aab9d" > "$ANDROID_SDK_ROOT/licenses/mips-android-sysimage-license"
+
+      # Install only what this project actually needs (matches compileSdk /
+      # targetSdk 34 and AGP 8.5.2's default build-tools in app/build.gradle.kts)
+      # up front, so Gradle never has to auto-download an SDK component
+      # mid-build and re-trigger a license check there.
+      - name: Install required Android SDK packages
+        run: |
+          set -e
+          sdkmanager --sdk_root="$ANDROID_SDK_ROOT" \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;34.0.0"
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      # NOTE: no API keys or secrets are needed to build the APK. AI provider
+      # keys, wake phrase, model, etc. are all runtime configuration set from
+      # the app itself (Settings screen) or via tools/config.sh after install.
+      #
+      # This project ships without the binary gradle-wrapper.jar (this
+      # environment couldn't fetch it without network access). CI uses the
+      # `gradle` command directly instead of `./gradlew` for that reason. If
+      # you'd rather use the wrapper locally, run `gradle wrapper` once with
+      # a local Gradle install to generate gradlew/gradlew.bat + the jar, then
+      # commit them.
+      - name: Verify project structure
+        run: |
+          set -e
+          test -f settings.gradle.kts
+          test -f app/build.gradle.kts
+          test -f app/src/main/AndroidManifest.xml
+          grep -q 'androidx.compose.material:material-icons-core' app/build.gradle.kts
+          echo "RAMESH AI project structure OK"
+
+      - name: Build debug APK
+        run: gradle assembleDebug --stacktrace
+
+      - name: Upload debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ramesh-ai-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      # Release build only runs if you've configured signing secrets in the repo
+      # (see README "Optional: signed release builds"). It's safe to leave
+      # these secrets unset -- this job is skipped entirely in that case.
+      - name: Build release APK (unsigned)
+        if: ${{ vars.BUILD_RELEASE == 'true' }}
+        run: gradle assembleRelease --stacktrace
+
+      - name: Upload release APK artifact
+        if: ${{ vars.BUILD_RELEASE == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ramesh-ai-release-apk
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: warn

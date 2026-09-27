@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">RAMESH AI</string>
+    <string name="accessibility_service_description">RAMESH AI uses this permission only when you ask it to open apps, click, scroll, or type on your behalf. It never activates on its own and you can turn it off anytime in Settings.</string>
+    <string name="assistant_notification_channel">RAMESH AI Assistant</string>
+    <string name="assistant_notification_text">RAMESH AI is listening in the background</string>
+</resources>
